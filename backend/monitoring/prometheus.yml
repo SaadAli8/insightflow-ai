@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # FastAPI metrics (exposed by prometheus-fastapi-instrumentator at /metrics).
+  - job_name: fastapi
+    static_configs:
+      - targets: ["api:8000"]
+
+  # Kong metrics (prometheus plugin on the admin port).
+  - job_name: kong
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["kong:8001"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

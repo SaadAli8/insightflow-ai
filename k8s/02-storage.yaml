@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: insightflow-ai-storage
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: insightflow-ai-local
+  hostPath:
+    path: /tmp/insightflow-ai-storage
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: insightflow-ai-storage
+  namespace: insightflow-ai
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: insightflow-ai-local
+  resources:
+    requests:
+      storage: 5Gi
+

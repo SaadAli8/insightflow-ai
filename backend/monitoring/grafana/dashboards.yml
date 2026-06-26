@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: InsightFlow AI
+    orgId: 1
+    folder: InsightFlow AI
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

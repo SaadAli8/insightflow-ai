@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: insightflow-ai-config
+  namespace: insightflow-ai
+data:
+  APP_NAME: "InsightFlow AI"
+  ENVIRONMENT: "kubernetes"
+  REDIS_URL: "redis://redis:6379/3"
+  CELERY_BROKER_URL: "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+  RATELIMIT_REDIS_URL: "redis://redis:6379/2"
+  JWT_ALGORITHM: "HS256"
+  JWT_ISSUER: "insightflow-ai"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+  LOCAL_STORAGE_PATH: "storage_data"
+  KAFKA_ENABLED: "false"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  KAFKA_TOPIC: "insightflow.events"
+  OPENAI_MODEL: "gpt-4o"
+  OPENAI_SEARCH_TOOL: "web_search"
+  OPENAI_REQUEST_TIMEOUT: "120"
+  OPENAI_MOCK: "true"
+  LLM_MAX_RPM: "60"
+  LLM_MAX_CONCURRENCY: "20"
+  SCRAPE_PER_DOMAIN_RPS: "1.0"
+  SCRAPE_TIMEOUT: "20"
+  SCRAPE_USER_AGENT: "InsightFlowAIBot/1.0 (+http://localhost)"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: insightflow-ai-secret
+  namespace: insightflow-ai
+type: Opaque
+stringData:
+  DATABASE_URL: "postgresql+psycopg2://postgres:postgres@postgres:5432/insightflow_ai"
+  JWT_SECRET: "change-me-in-prod-super-secret"
+  OPENAI_API_KEY: ""
+

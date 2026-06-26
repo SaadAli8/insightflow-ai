@@ -1,0 +1,213 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-website
+  namespace: insightflow-ai
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker-website
+  template:
+    metadata:
+      labels:
+        app: worker-website
+    spec:
+      containers:
+        - name: worker-website
+          image: local/insightflow-ai:latest
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "workers.celery_app.celery", "worker", "-Q", "website", "--pool=gevent", "-c", "50", "-n", "website@%h"]
+          envFrom:
+            - configMapRef:
+                name: insightflow-ai-config
+            - secretRef:
+                name: insightflow-ai-secret
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage_data
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: insightflow-ai-storage
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-website
+  namespace: insightflow-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker-website
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: worker-website
+  namespace: insightflow-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: worker-website
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-file
+  namespace: insightflow-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker-file
+  template:
+    metadata:
+      labels:
+        app: worker-file
+    spec:
+      containers:
+        - name: worker-file
+          image: local/insightflow-ai:latest
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "workers.celery_app.celery", "worker", "-Q", "file", "--pool=prefork", "-c", "4", "-n", "file@%h"]
+          envFrom:
+            - configMapRef:
+                name: insightflow-ai-config
+            - secretRef:
+                name: insightflow-ai-secret
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage_data
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: insightflow-ai-storage
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-file
+  namespace: insightflow-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker-file
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: worker-file
+  namespace: insightflow-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: worker-file
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-ai
+  namespace: insightflow-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker-ai
+  template:
+    metadata:
+      labels:
+        app: worker-ai
+    spec:
+      containers:
+        - name: worker-ai
+          image: local/insightflow-ai:latest
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "workers.celery_app.celery", "worker", "-Q", "ai", "--pool=gevent", "-c", "20", "-n", "ai@%h"]
+          envFrom:
+            - configMapRef:
+                name: insightflow-ai-config
+            - secretRef:
+                name: insightflow-ai-secret
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage_data
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: insightflow-ai-storage
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-ai
+  namespace: insightflow-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker-ai
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: worker-ai
+  namespace: insightflow-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: worker-ai
+

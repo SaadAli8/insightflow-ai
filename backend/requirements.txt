@@ -1,0 +1,44 @@
+# --- Web / API ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+gunicorn==23.0.0
+python-multipart==0.0.20
+pydantic==2.10.4
+pydantic-settings==2.7.1
+email-validator==2.3.0
+
+# --- Auth ---
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+
+# --- Database ---
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+
+# --- Background work / cache ---
+celery==5.4.0
+redis==5.2.1
+gevent==24.11.1   # gevent pool for the I/O-bound website + ai workers
+
+# --- Events ---
+kafka-python==2.3.2
+
+# --- AI (OpenAI web search / Responses API) ---
+openai==2.41.0
+
+# --- Website fetch + content extraction ---
+httpx==0.28.1
+trafilatura==2.0.0
+
+# --- File extraction / OCR ---
+pypdf==5.1.0
+python-docx==1.1.2
+openpyxl==3.1.5
+pdf2image==1.17.0
+pytesseract==0.3.13
+pillow==11.1.0
+
+# --- Observability ---
+prometheus-fastapi-instrumentator==7.0.0
+flower==2.0.1

@@ -1,0 +1,11 @@
+apiVersion: 1
+
+# Auto-wires Prometheus as the default Grafana datasource so you can build
+# dashboards immediately (Explore -> Prometheus).
+datasources:
+  - name: Prometheus
+    uid: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true

@@ -1,0 +1,175 @@
+# ============================================================================
+#  InsightFlow AI — full local stack.
+#
+#  Entry points after `docker compose --env-file backend/.env up -d`:
+#    - React console:             http://localhost:5173
+#    - Kong gateway (use this):  http://localhost:8080/api/v1/...
+#    - Konga (Kong UI):           http://localhost:1337
+#    - FastAPI direct (debug):   http://localhost:8000/docs
+#    - Flower (Celery):          http://localhost:5555
+#    - Prometheus:               http://localhost:9090
+#    - Grafana:                  http://localhost:3000   (admin / admin)
+# ============================================================================
+
+# Shared definition for every Python container (API, workers, consumer).
+# They all use the SAME image and backend/.env; only the command differs.
+x-app: &app
+  build: ./backend
+  image: ${DOCKERHUB_USER:-local}/insightflow-ai:latest
+  env_file: ./backend/.env
+  volumes:
+    - ./backend/storage_data:/app/storage_data
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis:    { condition: service_healthy }
+
+services:
+  # ------------------------------------------------------------------ data
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: insightflow_ai
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Single-node Kafka in KRaft mode (no ZooKeeper needed).
+  kafka:
+    image: apache/kafka:3.9.0
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  # ------------------------------------------------------------------ gateway
+  kong:
+    image: kong:3.7
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_PLUGINS: bundled
+    volumes:
+      - ./backend/kong:/kong:ro
+    ports:
+      - "8080:8000"   # public gateway  -> hit this
+      - "8001:8001"   # kong admin api
+    depends_on: [api]
+
+  konga:
+    image: pantsel/konga:latest
+    environment:
+      NODE_ENV: production
+      NO_AUTH: "true"
+      TOKEN_SECRET: local-konga-token-secret-change-me
+      STORAGE_PATH: /app/kongadata
+      KONGA_HOOK_TIMEOUT: 120000
+    ports: ["1337:1337"]
+    volumes:
+      - kongadata:/app/kongadata
+    depends_on: [kong]
+
+  # ------------------------------------------------------------------ app
+  api:
+    <<: *app
+    ports: ["8000:8000"]
+    # gunicorn command comes from the Dockerfile CMD
+
+  frontend:
+    build: ./frontend
+    image: ${DOCKERHUB_USER:-local}/insightflow-ai-ui:latest
+    environment:
+      VITE_API_PROXY_TARGET: http://kong:8000
+      VITE_API_BASE: /api/v1
+    ports: ["5173:5173"]
+    depends_on: [kong]
+
+  # I/O-bound: website fetch. gevent pool -> many concurrent fetches, low CPU.
+  worker-website:
+    <<: *app
+    command: celery -A workers.celery_app.celery worker -Q website --pool=gevent -c 50 -n website@%h
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  # CPU-bound: PDF/DOCX/XLSX parsing + OCR. prefork pool, concurrency = a few cores.
+  worker-file:
+    <<: *app
+    command: celery -A workers.celery_app.celery worker -Q file --pool=prefork -c 4 -n file@%h
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  # I/O-bound but RATE-LIMITED by OpenAI. gevent + Redis token bucket = backpressure.
+  worker-ai:
+    <<: *app
+    command: celery -A workers.celery_app.celery worker -Q ai --pool=gevent -c 20 -n ai@%h
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  # Kafka consumer -> turns ANALYSIS_COMPLETED events into notifications.
+  consumer:
+    <<: *app
+    command: python -m consumers.notification_consumer
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka:    { condition: service_started }
+
+  # ------------------------------------------------------------------ observability
+  flower:
+    <<: *app
+    command: celery -A workers.celery_app.celery flower --port=5555
+    ports: ["5555:5555"]
+    depends_on:
+      redis: { condition: service_healthy }
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./backend/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - ./backend/monitoring/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+      - ./backend/monitoring/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./backend/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
+
+volumes:
+  pgdata:
+  kongadata:

@@ -1,0 +1,63 @@
+# ============================================================================
+#  Kong declarative (DB-less) config.
+#
+#  Kong sits in front of FastAPI and handles cross-cutting edge concerns:
+#    - JWT signature + expiry validation  (rejects bad tokens BEFORE FastAPI)
+#    - Per-route rate limiting            (protects the backend from floods)
+#    - Routing / load balancing           (to the "api" upstream)
+#
+#  FastAPI still does fine-grained authz (does user X own job Y?), validation,
+#  and job creation. Kong guards the door; FastAPI runs the business logic.
+#
+#  NOTE: the "secret" below MUST equal JWT_SECRET in your .env file, and the
+#  "key" must equal JWT_ISSUER. The login token carries iss=insightflow-ai, which
+#  Kong uses (key_claim_name: iss) to find this consumer and verify the HS256
+#  signature.
+# ============================================================================
+_format_version: "3.0"
+
+services:
+  - name: insightflow-ai
+    url: http://api:8000
+    routes:
+      # Public routes: no JWT required (you don't have a token yet at login).
+      - name: public
+        paths:
+          - /api/v1/auth
+          - /health
+          - /docs
+          - /openapi.json
+          - /metrics
+        strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 300
+              policy: local
+
+      # Everything else under /api/v1 requires a valid JWT.
+      - name: protected
+        paths:
+          - /api/v1
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              claims_to_verify:
+                - exp
+          - name: rate-limiting
+            config:
+              minute: 1000
+              policy: local
+
+consumers:
+  - username: insightflow-ai-users
+    jwt_secrets:
+      - key: insightflow-ai                       # must equal JWT_ISSUER
+        algorithm: HS256
+        secret: change-me-in-prod-super-secret # must equal JWT_SECRET
+
+plugins:
+  # Exposes Kong metrics at :8001/metrics for Prometheus.
+  - name: prometheus
