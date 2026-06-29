@@ -77,12 +77,12 @@ First build takes a few minutes (installs Tesseract/Poppler). Then:
 | Service            | URL                                   |
 |--------------------|---------------------------------------|
 | **React console**  | http://localhost:5173                 |
-| **Gateway (use)**  | http://localhost:8080/api/v1          |
+| **Gateway (use)**  | http://localhost:8081/api/v1          |
 | Konga (Kong UI)    | http://localhost:1337                 |
 | FastAPI docs       | http://localhost:8000/docs            |
 | Flower (Celery)    | http://localhost:5555                 |
 | Prometheus         | http://localhost:9090                 |
-| Grafana            | http://localhost:3000 (admin/admin)   |
+| Grafana            | http://localhost:3001 (admin/admin)   |
 
 ### 4. Seed demo data (100 users + sample jobs)
 ```bash
@@ -131,30 +131,30 @@ The React app calls `/api/v1/...`; Vite proxies those requests to Kong.
 
 ```bash
 # 1. Register
-curl -X POST http://localhost:8080/api/v1/auth/register \
+curl -X POST http://localhost:8081/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"me@example.com","password":"secret123"}'
 
 # 2. Login -> get JWT
-TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+TOKEN=$(curl -s -X POST http://localhost:8081/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"me@example.com","password":"secret123"}' | jq -r .access_token)
 
 # 3. Submit a website (returns 202 + job_id instantly)
-curl -X POST http://localhost:8080/api/v1/websites \
+curl -X POST http://localhost:8081/api/v1/websites \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"url":"https://fastapi.tiangolo.com"}'
 
 # 4. Upload a file
-curl -X POST http://localhost:8080/api/v1/files/upload \
+curl -X POST http://localhost:8081/api/v1/files/upload \
   -H "Authorization: Bearer $TOKEN" -F "upload=@/path/to/report.pdf"
 
 # 5. Poll job status, then fetch the result
-curl http://localhost:8080/api/v1/jobs -H "Authorization: Bearer $TOKEN"
-curl http://localhost:8080/api/v1/jobs/<job_id>/result -H "Authorization: Bearer $TOKEN"
+curl http://localhost:8081/api/v1/jobs -H "Authorization: Bearer $TOKEN"
+curl http://localhost:8081/api/v1/jobs/<job_id>/result -H "Authorization: Bearer $TOKEN"
 
 # 6. Notifications (created by the Kafka consumer)
-curl http://localhost:8080/api/v1/notifications -H "Authorization: Bearer $TOKEN"
+curl http://localhost:8081/api/v1/notifications -H "Authorization: Bearer $TOKEN"
 ```
 
 > PowerShell users: use `Invoke-RestMethod` or just use the Swagger UI at
@@ -283,7 +283,7 @@ See `k8s/README.md` for Minikube notes and cleanup commands.
 - **Prometheus** (`http://localhost:9090`) collects time-series metrics from
   the running services. In this stack it scrapes FastAPI/Kong metrics so you can
   inspect request count, latency, error rate, and service health.
-- **Grafana** (`http://localhost:3000`) is the dashboard layer for system
+- **Grafana** (`http://localhost:3001`) is the dashboard layer for system
   metrics. It reads from Prometheus and is where production-style charts would
   live: request rate, latency, worker health, queue depth, and error trends.
 - **Local storage** (`backend/storage_data/`) stores uploaded files and extracted text

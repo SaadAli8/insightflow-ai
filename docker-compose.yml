@@ -3,12 +3,12 @@
 #
 #  Entry points after `docker compose --env-file backend/.env up -d`:
 #    - React console:             http://localhost:5173
-#    - Kong gateway (use this):  http://localhost:8080/api/v1/...
+#    - Kong gateway (use this):  http://localhost:8081/api/v1/...
 #    - Konga (Kong UI):           http://localhost:1337
 #    - FastAPI direct (debug):   http://localhost:8000/docs
 #    - Flower (Celery):          http://localhost:5555
 #    - Prometheus:               http://localhost:9090
-#    - Grafana:                  http://localhost:3000   (admin / admin)
+#    - Grafana:                  http://localhost:3001   (admin / admin)
 # ============================================================================
 
 # Shared definition for every Python container (API, workers, consumer).
@@ -31,7 +31,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: insightflow_ai
-    ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -42,7 +41,6 @@ services:
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
-    ports: ["6379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -52,7 +50,6 @@ services:
   # Single-node Kafka in KRaft mode (no ZooKeeper needed).
   kafka:
     image: apache/kafka:3.9.0
-    ports: ["9092:9092"]
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -80,7 +77,7 @@ services:
     volumes:
       - ./backend/kong:/kong:ro
     ports:
-      - "8080:8000"   # public gateway  -> hit this
+      - "8081:8000"   # public gateway  -> hit this
       - "8001:8001"   # kong admin api
     depends_on: [api]
 
@@ -167,7 +164,7 @@ services:
       - ./backend/monitoring/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
       - ./backend/monitoring/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
       - ./backend/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-    ports: ["3000:3000"]
+    ports: ["3001:3000"]
     depends_on: [prometheus]
 
 volumes:
