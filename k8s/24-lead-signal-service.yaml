@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lead-signal-service
+  namespace: insightflow-ai
+spec:
+  selector:
+    app: lead-signal-service
+  ports:
+    - name: http
+      port: 8090
+      targetPort: 8090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lead-signal-service
+  namespace: insightflow-ai
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lead-signal-service
+  template:
+    metadata:
+      labels:
+        app: lead-signal-service
+    spec:
+      containers:
+        - name: lead-signal-service
+          image: local/insightflow-ai-lead-signal:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8090
+          envFrom:
+            - configMapRef:
+                name: insightflow-ai-config
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 75m
+              memory: 96Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lead-signal-service
+  namespace: insightflow-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: lead-signal-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: lead-signal-service
+  namespace: insightflow-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: lead-signal-service

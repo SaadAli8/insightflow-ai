@@ -78,8 +78,11 @@ First build takes a few minutes (installs Tesseract/Poppler). Then:
 |--------------------|---------------------------------------|
 | **React console**  | http://localhost:5173                 |
 | **Gateway (use)**  | http://localhost:8081/api/v1          |
+| **Lead API**       | http://localhost:8081/lead/v1         |
 | Konga (Kong UI)    | http://localhost:1337                 |
 | FastAPI docs       | http://localhost:8000/docs            |
+| Lead service docs  | http://localhost:8100/docs            |
+| Go lead signals    | http://localhost:8090/health          |
 | Flower (Celery)    | http://localhost:5555                 |
 | Prometheus         | http://localhost:9090                 |
 | Grafana            | http://localhost:3001 (admin/admin)   |
@@ -95,6 +98,55 @@ docker compose --env-file backend/.env exec api python -m scripts.seed_load_demo
 
 The seeded admin dashboard login is `user000@example.com` / `password123`.
 That account can see all seeded jobs in the React console.
+
+### Lead generation demo
+
+The console now includes **Campaigns**, **Companies**, and **Leads** pages. A
+campaign describes the target market, for example:
+
+```json
+{
+  "name": "US Construction CEOs",
+  "query": "Find construction company CEOs in the US",
+  "industry": "construction",
+  "country": "US",
+  "target_roles": ["CEO", "Founder", "Owner"],
+  "company_count": 10
+}
+```
+
+Architecture:
+
+- FastAPI `lead-service` owns campaigns, database records, Perplexity company
+  discovery, and RapidAPI Apollo people enrichment.
+- Go `lead-signal-service` inspects discovered company websites and extracts
+  public metadata such as title, description, contact patterns, LinkedIn links
+  already present on the company site, and industry keywords.
+- The main backend still owns auth, users, website/file analysis jobs, Celery
+  workers, Kafka events, and the core dashboard APIs.
+
+When you run a campaign, the lead-service accepts the request immediately,
+marks the campaign as running, and performs discovery/enrichment in the
+background. It discovers company websites with Perplexity, asks the Go service
+to validate/extract website signals, enriches people by domain through RapidAPI
+Apollo, and can submit discovered websites back to the main API so the existing
+website analysis workers can process them.
+The Campaigns page shows provider readiness before you run; the Companies page
+shows discovered websites and Go service signals; the Leads page shows enriched
+people details.
+
+Add these keys to `backend/.env` before running real discovery/enrichment:
+
+```bash
+PERPLEXITY_API_KEY=
+PERPLEXITY_MODEL=sonar
+RAPIDAPI_KEY=
+RAPIDAPI_APOLLO_HOST=apollo-leads-from-website.p.rapidapi.com
+LEAD_SIGNAL_SERVICE_URL=http://lead-signal-service:8090
+```
+
+LinkedIn is not scraped directly. LinkedIn URLs are stored only when a provider
+returns them.
 
 ### Demo walkthrough for managers
 

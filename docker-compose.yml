@@ -79,7 +79,7 @@ services:
     ports:
       - "8081:8000"   # public gateway  -> hit this
       - "8001:8001"   # kong admin api
-    depends_on: [api]
+    depends_on: [api, lead-service]
 
   konga:
     image: pantsel/konga:latest
@@ -106,8 +106,34 @@ services:
     environment:
       VITE_API_PROXY_TARGET: http://kong:8000
       VITE_API_BASE: /api/v1
+      VITE_LEAD_API_BASE: /lead/v1
     ports: ["5173:5173"]
     depends_on: [kong]
+
+  lead-service:
+    build: ./microservices/lead-service
+    image: ${DOCKERHUB_USER:-local}/insightflow-ai-lead-service:latest
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/insightflow_ai
+      MAIN_API_BASE: http://api:8000
+      LEAD_SIGNAL_SERVICE_URL: http://lead-signal-service:8090
+      PERPLEXITY_MODEL: ${PERPLEXITY_MODEL:-sonar}
+      RAPIDAPI_APOLLO_HOST: ${RAPIDAPI_APOLLO_HOST:-apollo-leads-from-website.p.rapidapi.com}
+    ports: ["8100:8100"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      api: { condition: service_started }
+      lead-signal-service: { condition: service_started }
+
+  lead-signal-service:
+    build: ./microservices/lead-signal-service
+    image: ${DOCKERHUB_USER:-local}/insightflow-ai-lead-signal:latest
+    environment:
+      PORT: 8090
+      SIGNAL_HTTP_TIMEOUT_SECONDS: 20
+      SIGNAL_USER_AGENT: InsightFlowAILeadSignal/1.0
+    ports: ["8090:8090"]
 
   # I/O-bound: website fetch. gevent pool -> many concurrent fetches, low CPU.
   worker-website:

@@ -17,6 +17,8 @@ From the project root:
 ```powershell
 docker build -t local/insightflow-ai:latest backend
 docker build -t local/insightflow-ai-ui:latest frontend
+docker build -t local/insightflow-ai-lead-service:latest microservices/lead-service
+docker build -t local/insightflow-ai-lead-signal:latest microservices/lead-signal-service
 ```
 
 If you use Minikube instead of Docker Desktop Kubernetes:
@@ -24,6 +26,8 @@ If you use Minikube instead of Docker Desktop Kubernetes:
 ```powershell
 minikube image build -t local/insightflow-ai:latest backend
 minikube image build -t local/insightflow-ai-ui:latest frontend
+minikube image build -t local/insightflow-ai-lead-service:latest microservices/lead-service
+minikube image build -t local/insightflow-ai-lead-signal:latest microservices/lead-signal-service
 ```
 
 ## Apply Kubernetes Manifests
@@ -62,6 +66,11 @@ Check the workloads:
 ```powershell
 kubectl -n insightflow-ai get pods,svc,hpa,pdb
 ```
+
+The lead-generation API is exposed inside the cluster as `lead-service:8100`.
+The Go website signal service is exposed inside the cluster as
+`lead-signal-service:8090` and is called by `lead-service`.
+If you deploy Kong in front of the cluster, route `/lead/v1` to that service.
 
 Open the frontend locally:
 

@@ -6,6 +6,10 @@ const proxy = {
   "/api": {
     target: proxyTarget,
     changeOrigin: true
+  },
+  "/lead": {
+    target: proxyTarget,
+    changeOrigin: true
   }
 };
 

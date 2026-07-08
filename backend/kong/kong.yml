@@ -51,6 +51,24 @@ services:
               minute: 1000
               policy: local
 
+  - name: insightflow-leads
+    url: http://lead-service:8100
+    routes:
+      - name: lead-protected
+        paths:
+          - /lead/v1
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              claims_to_verify:
+                - exp
+          - name: rate-limiting
+            config:
+              minute: 500
+              policy: local
+
 consumers:
   - username: insightflow-ai-users
     jwt_secrets:
