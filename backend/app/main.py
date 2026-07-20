@@ -8,11 +8,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api.v1 import auth, files, jobs, notifications, users, websites
-from app.core.config import settings
-from app.core.logging import get_logger, setup_logging
+from app.config import settings
+from app.config.constants import API_V1_PREFIX
+from app.routes import auth_routes, file_routes, job_routes, notification_routes, user_routes, website_routes
 from app.db.init_db import init_db
 from app.services.storage import ensure_storage_root
+from app.utils import get_logger, setup_logging
 
 setup_logging()
 log = get_logger("api")
@@ -39,9 +40,9 @@ def health():
 
 
 # All business routes live under /api/v1 (matches the Kong routes).
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(websites.router, prefix="/api/v1")
-app.include_router(files.router, prefix="/api/v1")
-app.include_router(jobs.router, prefix="/api/v1")
-app.include_router(notifications.router, prefix="/api/v1")
-app.include_router(users.router, prefix="/api/v1")
+app.include_router(auth_routes.router, prefix=API_V1_PREFIX)
+app.include_router(website_routes.router, prefix=API_V1_PREFIX)
+app.include_router(file_routes.router, prefix=API_V1_PREFIX)
+app.include_router(job_routes.router, prefix=API_V1_PREFIX)
+app.include_router(notification_routes.router, prefix=API_V1_PREFIX)
+app.include_router(user_routes.router, prefix=API_V1_PREFIX)
