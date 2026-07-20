@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
-WORKDIR /app
+WORKDIR /backend
 
 # System deps:
 #  - tesseract-ocr  -> OCR for images / scanned PDFs
@@ -29,7 +29,7 @@ COPY . .
 EXPOSE 8000
 
 # Default command = API. Workers override this in docker-compose.yml.
-CMD ["gunicorn", "app.main:app", \
+CMD ["gunicorn", "main:app", \
      "-k", "uvicorn.workers.UvicornWorker", \
      "-w", "4", "-b", "0.0.0.0:8000", \
      "--timeout", "120"]

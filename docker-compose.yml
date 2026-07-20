@@ -18,7 +18,7 @@ x-app: &app
   image: ${DOCKERHUB_USER:-local}/insightflow-ai:latest
   env_file: ./backend/.env
   volumes:
-    - ./backend/storage_data:/app/storage_data
+    - ./storage_data:/backend/storage_data
   depends_on:
     postgres: { condition: service_healthy }
     redis:    { condition: service_healthy }
@@ -138,7 +138,7 @@ services:
   # I/O-bound: website fetch. gevent pool -> many concurrent fetches, low CPU.
   worker-website:
     <<: *app
-    command: celery -A app.services.workers.celery_app.celery worker -Q website --pool=gevent -c 50 -n website@%h
+    command: celery -A services.workers.celery_app.celery worker -Q website --pool=gevent -c 50 -n website@%h
     depends_on:
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
@@ -146,7 +146,7 @@ services:
   # CPU-bound: PDF/DOCX/XLSX parsing + OCR. prefork pool, concurrency = a few cores.
   worker-file:
     <<: *app
-    command: celery -A app.services.workers.celery_app.celery worker -Q file --pool=prefork -c 4 -n file@%h
+    command: celery -A services.workers.celery_app.celery worker -Q file --pool=prefork -c 4 -n file@%h
     depends_on:
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
@@ -154,7 +154,7 @@ services:
   # I/O-bound but RATE-LIMITED by OpenAI. gevent + Redis token bucket = backpressure.
   worker-ai:
     <<: *app
-    command: celery -A app.services.workers.celery_app.celery worker -Q ai --pool=gevent -c 20 -n ai@%h
+    command: celery -A services.workers.celery_app.celery worker -Q ai --pool=gevent -c 20 -n ai@%h
     depends_on:
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
@@ -162,7 +162,7 @@ services:
   # Kafka consumer -> turns ANALYSIS_COMPLETED events into notifications.
   consumer:
     <<: *app
-    command: python -m app.services.notification_consumer
+    command: python -m services.notification_consumer
     depends_on:
       postgres: { condition: service_healthy }
       kafka:    { condition: service_started }
@@ -170,7 +170,7 @@ services:
   # ------------------------------------------------------------------ observability
   flower:
     <<: *app
-    command: celery -A app.services.workers.celery_app.celery flower --port=5555
+    command: celery -A services.workers.celery_app.celery flower --port=5555
     ports: ["5555:5555"]
     depends_on:
       redis: { condition: service_healthy }

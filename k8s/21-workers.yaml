@@ -17,7 +17,7 @@ spec:
         - name: worker-website
           image: local/insightflow-ai:latest
           imagePullPolicy: IfNotPresent
-          command: ["celery", "-A", "app.services.workers.celery_app.celery", "worker", "-Q", "website", "--pool=gevent", "-c", "50", "-n", "website@%h"]
+          command: ["celery", "-A", "services.workers.celery_app.celery", "worker", "-Q", "website", "--pool=gevent", "-c", "50", "-n", "website@%h"]
           envFrom:
             - configMapRef:
                 name: insightflow-ai-config
@@ -25,7 +25,7 @@ spec:
                 name: insightflow-ai-secret
           volumeMounts:
             - name: storage
-              mountPath: /app/storage_data
+              mountPath: /backend/storage_data
           resources:
             requests:
               cpu: 200m
@@ -88,7 +88,7 @@ spec:
         - name: worker-file
           image: local/insightflow-ai:latest
           imagePullPolicy: IfNotPresent
-          command: ["celery", "-A", "app.services.workers.celery_app.celery", "worker", "-Q", "file", "--pool=prefork", "-c", "4", "-n", "file@%h"]
+          command: ["celery", "-A", "services.workers.celery_app.celery", "worker", "-Q", "file", "--pool=prefork", "-c", "4", "-n", "file@%h"]
           envFrom:
             - configMapRef:
                 name: insightflow-ai-config
@@ -96,7 +96,7 @@ spec:
                 name: insightflow-ai-secret
           volumeMounts:
             - name: storage
-              mountPath: /app/storage_data
+              mountPath: /backend/storage_data
           resources:
             requests:
               cpu: 500m
@@ -159,7 +159,7 @@ spec:
         - name: worker-ai
           image: local/insightflow-ai:latest
           imagePullPolicy: IfNotPresent
-          command: ["celery", "-A", "app.services.workers.celery_app.celery", "worker", "-Q", "ai", "--pool=gevent", "-c", "20", "-n", "ai@%h"]
+          command: ["celery", "-A", "services.workers.celery_app.celery", "worker", "-Q", "ai", "--pool=gevent", "-c", "20", "-n", "ai@%h"]
           envFrom:
             - configMapRef:
                 name: insightflow-ai-config
@@ -167,7 +167,7 @@ spec:
                 name: insightflow-ai-secret
           volumeMounts:
             - name: storage
-              mountPath: /app/storage_data
+              mountPath: /backend/storage_data
           resources:
             requests:
               cpu: 250m

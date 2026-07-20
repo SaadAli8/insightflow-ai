@@ -26,7 +26,7 @@ ps:
 	docker compose --env-file backend/.env ps
 
 seed:         ## Seed 100 users + sample websites/files
-	docker compose --env-file backend/.env exec api python -m scripts.seed
+	docker compose --env-file backend/.env exec api python -m utils.seed
 
 # --- Docker Hub ---
 push:         ## Build and push image to Docker Hub

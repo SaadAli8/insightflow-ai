@@ -39,7 +39,7 @@ so the model researches the live site — no custom crawler needed.
          │ (gevent)     │ ───► OpenAI (web search + analysis)
          └──────┬───────┘
                 ▼
-        PostgreSQL (results)   ./backend/storage_data (uploads + extracted text)
+        PostgreSQL (results)   ./storage_data (uploads + extracted text)
 ```
 
 | Layer        | Tech              | Job                                            |
@@ -50,7 +50,7 @@ so the model researches the live site — no custom crawler needed.
 | Workers      | Celery (3 queues) | website (I/O) · file (CPU/OCR) · ai (rate-gated)|
 | Events       | Kafka (KRaft)     | `insightflow.events` → notifications/audit        |
 | Database     | PostgreSQL        | System of record                               |
-| Storage      | Local filesystem  | Uploaded files + extracted text in `backend/storage_data/` |
+| Storage      | Local filesystem  | Uploaded files + extracted text in `storage_data/` |
 | AI           | OpenAI web search | Website research + file analysis               |
 | Monitoring   | Prometheus+Grafana+Flower | Metrics & queue visibility            |
 
@@ -89,11 +89,11 @@ First build takes a few minutes (installs Tesseract/Poppler). Then:
 
 ### 4. Seed demo data (100 users + sample jobs)
 ```bash
-docker compose --env-file backend/.env exec api python -m app.utils.seed
+docker compose --env-file backend/.env exec api python -m utils.seed
 # more load:
-docker compose --env-file backend/.env exec api python -m app.utils.seed --users 100 --enqueue 10 --files 5
+docker compose --env-file backend/.env exec api python -m utils.seed --users 100 --enqueue 10 --files 5
 # professional load demo (100 users + 100 website jobs enqueued):
-docker compose --env-file backend/.env exec api python -m app.utils.seed_load_demo --reset
+docker compose --env-file backend/.env exec api python -m utils.seed_load_demo --reset
 ```
 
 The seeded admin dashboard login is `user000@example.com` / `password123`.
@@ -165,7 +165,7 @@ returns them.
    clutter the demo.
 7. Open Flower (`http://localhost:5555`) to show Celery workers and queues.
 8. Open Konga/Kong Admin API to show gateway routing and rate limiting.
-9. Open the local `backend/storage_data/` folder to show uploaded files and extracted
+9. Open the local `storage_data/` folder to show uploaded files and extracted
    text stored in the project directory.
 10. Open Prometheus/Grafana for monitoring.
 
@@ -217,7 +217,7 @@ curl http://localhost:8081/api/v1/notifications -H "Authorization: Bearer $TOKEN
 ## How backpressure works (the important part)
 
 Heavy work is bounded by **external** limits, enforced with a Redis token bucket
-([backend/app/services/workers/ratelimit.py](backend/app/services/workers/ratelimit.py)):
+([backend/services/workers/ratelimit.py](backend/services/workers/ratelimit.py)):
 
 - **OpenAI:** all `worker-ai` containers share one global bucket of
   `LLM_MAX_RPM` requests/minute. If the budget is spent, the task re-queues
@@ -275,25 +275,25 @@ DOCKERHUB_USER=yourname docker compose --env-file backend/.env up -d
 
 ```
 frontend/               React console
-backend/                backend runtime package
-  app/                  application root following the backend guideline
-    config/             database, settings, environment, constants
-    models/             database entities
-    schemas/            request and response DTOs
-    routes/             API endpoints only
-    repositories/       database operations only
-    services/           business logic, workers, events, storage
-    middleware/         auth and request middleware
-    security/           JWT, passwords, encryption helpers
-    helpers/            reusable helper classes
-    exceptions/         custom exceptions and handlers
-    utils/              logger, validators, seed utilities
-    migrations/         migration placeholder
-    tests/              backend tests
-  storage_data/         uploads and extracted text
+backend/                backend source following the backend guideline
+  config/               database, settings, environment, constants
+  models/               database entities
+  schemas/              request and response DTOs
+  routes/               API endpoints only
+  repositories/         database operations only
+  services/             business logic, workers, events, storage
+  middleware/           auth and request middleware
+  security/             JWT, passwords, encryption helpers
+  helpers/              reusable helper classes
+  exceptions/           custom exceptions and handlers
+  utils/                logger, validators, seed utilities
+  migrations/           migration placeholder
+  tests/                backend tests
+  main.py               FastAPI entrypoint
   Dockerfile            backend image for api/workers/consumer
   requirements.txt      Python dependencies
   .env                  local backend environment
+storage_data/           runtime uploads and extracted text
 infra/
   kong/                 Kong gateway config
   monitoring/           Prometheus and Grafana config
@@ -349,7 +349,7 @@ See `k8s/README.md` for Minikube notes and cleanup commands.
 - **Grafana** (`http://localhost:3001`) is the dashboard layer for system
   metrics. It reads from Prometheus and is where production-style charts would
   live: request rate, latency, worker health, queue depth, and error trends.
-- **Local storage** (`backend/storage_data/`) stores uploaded files and extracted text
+- **Local storage** (`storage_data/`) stores uploaded files and extracted text
   directly in the project directory. Docker mounts this folder into the API and
   worker containers so each service can read the same files.
 
