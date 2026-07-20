@@ -11,16 +11,16 @@ independently. A burst of CPU-heavy file jobs can't starve quick website jobs.""
 
 from celery import Celery
 
-from app.core.config import settings
+from app.config.settings import settings
 
 celery = Celery(
     "insightflow_ai",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
     include=[
-        "workers.tasks.website",
-        "workers.tasks.files",
-        "workers.tasks.ai",
+        "app.services.workers.tasks.website",
+        "app.services.workers.tasks.files",
+        "app.services.workers.tasks.ai",
     ],
 )
 
@@ -32,9 +32,9 @@ celery.conf.update(
     worker_prefetch_multiplier=1,
     # Route each task to its dedicated queue.
     task_routes={
-        "workers.tasks.website.*": {"queue": "website"},
-        "workers.tasks.files.*": {"queue": "file"},
-        "workers.tasks.ai.*": {"queue": "ai"},
+        "app.services.workers.tasks.website.*": {"queue": "website"},
+        "app.services.workers.tasks.files.*": {"queue": "file"},
+        "app.services.workers.tasks.ai.*": {"queue": "ai"},
     },
     task_default_queue="default",
     # Redelivery window for unacked tasks (Redis broker).

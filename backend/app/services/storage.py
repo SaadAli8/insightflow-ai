@@ -7,7 +7,7 @@ workers write extracted text there, and the AI worker reads the extracted text.
 
 from pathlib import Path
 
-from app.core.config import settings
+from app.config.settings import settings
 
 
 def _root() -> Path:

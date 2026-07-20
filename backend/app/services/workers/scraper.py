@@ -8,8 +8,8 @@ the AI step still runs using web search alone."""
 import httpx
 import trafilatura
 
-from app.core.config import settings
-from app.core.logging import get_logger
+from app.config.settings import settings
+from app.utils.logger import get_logger
 
 log = get_logger("scraper")
 

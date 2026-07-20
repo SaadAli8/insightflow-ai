@@ -11,8 +11,8 @@ from urllib.parse import urlparse
 
 from openai import OpenAI
 
-from app.core.config import settings
-from app.core.logging import get_logger
+from app.config.settings import settings
+from app.utils.logger import get_logger
 
 log = get_logger("openai")
 

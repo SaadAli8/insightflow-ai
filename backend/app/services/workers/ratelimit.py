@@ -17,7 +17,7 @@ import time
 
 import redis
 
-from app.core.config import settings
+from app.config.settings import settings
 
 _r = redis.Redis.from_url(settings.ratelimit_redis_url)
 

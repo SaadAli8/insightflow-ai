@@ -4,18 +4,18 @@ then hand off to the AI queue. This is the CPU-bound stage (prefork pool)."""
 from celery import Task
 from celery.exceptions import Retry
 
-from app.core.logging import get_logger
-from app.db.models import File, Job, JobStatus
-from app.db.session import SessionLocal
+from app.utils.logger import get_logger
+from app.models import File, Job, JobStatus
+from app.config.database import SessionLocal
 from app.services import storage
 from app.services.events import Event, publish
-from workers.celery_app import celery
-from workers.extractors import extract_text
+from app.services.workers.celery_app import celery
+from app.services.workers.extractors import extract_text
 
 log = get_logger("task.file")
 
 
-@celery.task(bind=True, name="workers.tasks.files.process_file",
+@celery.task(bind=True, name="app.services.workers.tasks.files.process_file",
              max_retries=3, acks_late=True)
 def process_file(self: Task, job_id: str):
     db = SessionLocal()
@@ -42,7 +42,7 @@ def process_file(self: Task, job_id: str):
         db.commit()
         log.info("extracted %d chars from %s", len(text), f.filename)
 
-        celery.send_task("workers.tasks.ai.run_ai_analysis", args=[job.id], queue="ai")
+        celery.send_task("app.services.workers.tasks.ai.run_ai_analysis", args=[job.id], queue="ai")
 
     except Retry:
         raise

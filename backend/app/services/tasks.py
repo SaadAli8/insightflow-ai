@@ -4,11 +4,11 @@ code (OpenAI SDK, OCR libs, etc.). We send tasks by name through the broker.
 This is the key separation: the API only CREATES jobs and hands them off; the
 workers do the heavy lifting."""
 
-from workers.celery_app import celery
+from app.services.workers.celery_app import celery
 
-# Task names (must match the @celery.task(name=...) in workers/tasks/*).
-ANALYZE_WEBSITE = "workers.tasks.website.analyze_website"
-PROCESS_FILE = "workers.tasks.files.process_file"
+# Task names must match @celery.task(name=...) in app.services.workers.tasks.
+ANALYZE_WEBSITE = "app.services.workers.tasks.website.analyze_website"
+PROCESS_FILE = "app.services.workers.tasks.files.process_file"
 
 
 def enqueue_website(job_id: str) -> None:

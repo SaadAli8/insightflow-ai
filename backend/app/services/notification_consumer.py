@@ -8,12 +8,11 @@ consumers in their own group without touching the producer."""
 import json
 import time
 
-from app.core.config import settings
-from app.core.logging import get_logger, setup_logging
-from app.db.init_db import init_db
-from app.db.models import AuditLog, Notification
-from app.db.session import SessionLocal
+from app.config.database import SessionLocal, init_db
+from app.config.settings import settings
+from app.models import AuditLog, Notification
 from app.services.events import Event
+from app.utils.logger import get_logger, setup_logging
 
 setup_logging()
 log = get_logger("consumer")

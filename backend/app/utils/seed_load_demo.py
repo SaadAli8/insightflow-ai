@@ -5,12 +5,12 @@ seed script. It creates 100 users and 100 website jobs by default, then enqueues
 all 100 jobs so the React dashboard, Flower, and Grafana show parallel work.
 
 Run inside the api container:
-    docker compose exec api python -m scripts.seed_load_demo --reset
+    docker compose exec api python -m app.utils.seed_load_demo --reset
 """
 
 import argparse
 
-from scripts.seed import seed
+from app.utils.seed import seed
 
 
 def positive_int(value: str) -> int:

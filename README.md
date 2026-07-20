@@ -89,11 +89,11 @@ First build takes a few minutes (installs Tesseract/Poppler). Then:
 
 ### 4. Seed demo data (100 users + sample jobs)
 ```bash
-docker compose --env-file backend/.env exec api python -m scripts.seed
+docker compose --env-file backend/.env exec api python -m app.utils.seed
 # more load:
-docker compose --env-file backend/.env exec api python -m scripts.seed --users 100 --enqueue 10 --files 5
+docker compose --env-file backend/.env exec api python -m app.utils.seed --users 100 --enqueue 10 --files 5
 # professional load demo (100 users + 100 website jobs enqueued):
-docker compose --env-file backend/.env exec api python -m scripts.seed_load_demo --reset
+docker compose --env-file backend/.env exec api python -m app.utils.seed_load_demo --reset
 ```
 
 The seeded admin dashboard login is `user000@example.com` / `password123`.
@@ -217,7 +217,7 @@ curl http://localhost:8081/api/v1/notifications -H "Authorization: Bearer $TOKEN
 ## How backpressure works (the important part)
 
 Heavy work is bounded by **external** limits, enforced with a Redis token bucket
-([backend/workers/ratelimit.py](backend/workers/ratelimit.py)):
+([backend/app/services/workers/ratelimit.py](backend/app/services/workers/ratelimit.py)):
 
 - **OpenAI:** all `worker-ai` containers share one global bucket of
   `LLM_MAX_RPM` requests/minute. If the budget is spent, the task re-queues
@@ -275,17 +275,28 @@ DOCKERHUB_USER=yourname docker compose --env-file backend/.env up -d
 
 ```
 frontend/               React console
-backend/                backend runtime files
-  app/                  FastAPI application
-  workers/              Celery workers
-  consumers/            Kafka notification consumer
-  scripts/              demo seed scripts
-  kong/                 Kong gateway config
-  monitoring/           Prometheus and Grafana config
+backend/                backend runtime package
+  app/                  application root following the backend guideline
+    config/             database, settings, environment, constants
+    models/             database entities
+    schemas/            request and response DTOs
+    routes/             API endpoints only
+    repositories/       database operations only
+    services/           business logic, workers, events, storage
+    middleware/         auth and request middleware
+    security/           JWT, passwords, encryption helpers
+    helpers/            reusable helper classes
+    exceptions/         custom exceptions and handlers
+    utils/              logger, validators, seed utilities
+    migrations/         migration placeholder
+    tests/              backend tests
   storage_data/         uploads and extracted text
   Dockerfile            backend image for api/workers/consumer
   requirements.txt      Python dependencies
   .env                  local backend environment
+infra/
+  kong/                 Kong gateway config
+  monitoring/           Prometheus and Grafana config
 docker-compose.yml      full local stack
 Makefile                convenience commands
 ```
@@ -331,7 +342,7 @@ See `k8s/README.md` for Minikube notes and cleanup commands.
   API. Add a Kong connection in Konga with Admin URL `http://kong:8001` from
   inside Docker, or `http://localhost:8001` if Konga asks from your browser.
   Konga is useful for a visual demo, but this project still keeps Kong's real
-  configuration in `backend/kong/kong.yml`.
+  configuration in `infra/kong/kong.yml`.
 - **Prometheus** (`http://localhost:9090`) collects time-series metrics from
   the running services. In this stack it scrapes FastAPI/Kong metrics so you can
   inspect request count, latency, error rate, and service health.

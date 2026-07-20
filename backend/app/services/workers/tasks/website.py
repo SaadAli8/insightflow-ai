@@ -9,19 +9,19 @@ from urllib.parse import urlparse
 from celery import Task
 from celery.exceptions import MaxRetriesExceededError, Retry
 
-from app.core.logging import get_logger
-from app.db.models import Job, JobStatus, Website
-from app.db.session import SessionLocal
+from app.utils.logger import get_logger
+from app.models import Job, JobStatus, Website
+from app.config.database import SessionLocal
 from app.services import storage
 from app.services.events import Event, publish
-from workers.celery_app import celery
-from workers.ratelimit import domain_gate
-from workers.scraper import fetch_clean_text
+from app.services.workers.celery_app import celery
+from app.services.workers.ratelimit import domain_gate
+from app.services.workers.scraper import fetch_clean_text
 
 log = get_logger("task.website")
 
 
-@celery.task(bind=True, name="workers.tasks.website.analyze_website",
+@celery.task(bind=True, name="app.services.workers.tasks.website.analyze_website",
              max_retries=5, acks_late=True)
 def analyze_website(self: Task, job_id: str):
     db = SessionLocal()
@@ -54,7 +54,7 @@ def analyze_website(self: Task, job_id: str):
         db.commit()
 
         # Hand off to the rate-limited AI queue.
-        celery.send_task("workers.tasks.ai.run_ai_analysis", args=[job.id], queue="ai")
+        celery.send_task("app.services.workers.tasks.ai.run_ai_analysis", args=[job.id], queue="ai")
         log.info("website job %s queued for AI", job.id)
 
     except Retry:

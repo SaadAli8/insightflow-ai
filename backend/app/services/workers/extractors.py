@@ -6,7 +6,7 @@ Supported: PDF (with OCR fallback for scanned PDFs), DOCX, XLSX, CSV, images."""
 import csv
 import io
 
-from app.core.logging import get_logger
+from app.utils.logger import get_logger
 
 log = get_logger("extractors")
 

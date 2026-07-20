@@ -11,7 +11,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import settings
 from app.config.constants import API_V1_PREFIX
 from app.routes import auth_routes, file_routes, job_routes, notification_routes, user_routes, website_routes
-from app.db.init_db import init_db
+from app.config.database import init_db
 from app.services.storage import ensure_storage_root
 from app.utils import get_logger, setup_logging
 

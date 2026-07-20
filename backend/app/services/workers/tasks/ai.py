@@ -11,20 +11,20 @@ from celery import Task
 from celery.exceptions import MaxRetriesExceededError, Retry
 from openai import APIConnectionError, APITimeoutError, RateLimitError
 
-from app.core.config import settings
-from app.core.logging import get_logger
-from app.db.models import AnalysisResult, File, Job, JobStatus, JobType, Website
-from app.db.session import SessionLocal
+from app.config.settings import settings
+from app.utils.logger import get_logger
+from app.models import AnalysisResult, File, Job, JobStatus, JobType, Website
+from app.config.database import SessionLocal
 from app.services import storage
 from app.services.events import Event, publish
-from workers.celery_app import celery
-from workers.clients import openai_client
-from workers.ratelimit import llm_gate
+from app.services.workers.celery_app import celery
+from app.services.workers.clients import openai_client
+from app.services.workers.ratelimit import llm_gate
 
 log = get_logger("task.ai")
 
 
-@celery.task(bind=True, name="workers.tasks.ai.run_ai_analysis",
+@celery.task(bind=True, name="app.services.workers.tasks.ai.run_ai_analysis",
              max_retries=10, acks_late=True)
 def run_ai_analysis(self: Task, job_id: str):
     db = SessionLocal()

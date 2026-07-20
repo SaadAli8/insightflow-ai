@@ -5,8 +5,8 @@ analysis jobs, because each one calls the OpenAI API (costs money/quota).
 Bump --enqueue / --files to push more load through the pipeline.
 
 Run inside the api container:
-    docker compose exec api python -m scripts.seed
-    docker compose exec api python -m scripts.seed --users 100 --enqueue 10 --files 5
+    docker compose exec api python -m app.utils.seed
+    docker compose exec api python -m app.utils.seed --users 100 --enqueue 10 --files 5
 """
 
 import argparse
@@ -14,10 +14,9 @@ from urllib.parse import urlparse
 
 from sqlalchemy import text
 
-from app.core.security import hash_password
-from app.db.init_db import init_db
-from app.db.models import File, Job, JobStatus, JobType, User, Website
-from app.db.session import SessionLocal
+from app.config.database import SessionLocal, init_db
+from app.models import File, Job, JobStatus, JobType, User, Website
+from app.security import hash_password
 from app.services import storage, tasks
 
 SAMPLE_URLS = [

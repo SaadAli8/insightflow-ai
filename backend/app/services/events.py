@@ -11,8 +11,8 @@ flow never breaks because of the event bus."""
 import json
 import time
 
-from app.core.config import settings
-from app.core.logging import get_logger
+from app.config.settings import settings
+from app.utils.logger import get_logger
 
 log = get_logger("events")
 
